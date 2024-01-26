@@ -1,0 +1,55 @@
+@startuml
+!theme blueprint
+
+
+actor "Web user" as web
+participant "Web notify service" as web_service
+queue "Queue" as queue
+collections "Game server" as gs #C98BB9
+
+collections "Apple/Google/Email service" as email #C98BB9
+participant "Mobile notify service" as notify_service
+participant "User fan out service" as fanout
+queue "User fan out queue" as fanout_queue
+
+participant "Storage" as storage
+participant "Mobile API service" as api_service
+actor "Mobile user" as user
+
+
+web->web_service: websocket connection
+activate web_service
+web-->web_service: [WebPreferences]
+note over web_service
+    save preferences in memory
+end note
+
+gs-->queue: [GameEvent]
+queue-->web_service: [GameEvent]
+loop all matching users
+    web_service-->web: [GameEvent]
+end
+deactivate web_service
+
+|||
+
+user->api_service: [Preferences]
+activate user
+api_service->storage: save preferences
+queue-->fanout: [GameEvent]
+activate fanout
+fanout->storage: fetch matching users
+storage-->fanout: matching users
+loop all matching users
+  fanout-->fanout_queue: [GameEvent]
+  deactivate fanout
+  fanout_queue-->notify_service: [GameEvent]
+  activate notify_service
+  notify_service->email: [PlatformNotification<GameEvent>]
+  deactivate notify_service
+  email-->user: [PlatformNotification<GameEvent>]
+end
+
+deactivate user
+
+@enduml

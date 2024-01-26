@@ -1,0 +1,127 @@
+openapi: 3.0.3
+info:
+  title: ChessBoxing notifications
+  version: 1.0.0
+paths:
+  /users/{userId}/preferences/{gameId}:
+    put:
+      summary: Update notifications preferences
+      requestBody:
+        description: Notification preferences
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Preferences'
+        required: true
+      responses:
+        '204':
+          description: Successful operation
+        '400':
+          description: Invalid reqiest body
+      security:
+        - chessboxing_auth:
+            - preferences:update
+    delete:
+      summary: Remove all user match subscriptions
+      responses:
+        '204':
+          description: Successful operation
+        '400':
+          description: Invalid reqiest body
+      security:
+        - chessboxing_auth:
+            - preferences:update
+    parameters:
+      - name: userId
+        in: path
+        description: User ID
+        required: true
+        schema:
+          $ref: '#/components/schemas/UserId'
+      - name: gameId
+        in: path
+        description: Game ID
+        required: true
+        schema:
+          $ref: '#/components/schemas/GameId'
+  /users/{userId}/preferences:
+    delete:
+      summary: Remove all user subscriptions
+      responses:
+        '204':
+          description: Successful operation
+      security:
+        - chessboxing_auth:
+            - preferences:update
+    parameters:
+      - name: userId
+        in: path
+        description: User ID
+        required: true
+        schema:
+          $ref: '#/components/schemas/UserId'
+
+components:
+  schemas:
+    Preferences:
+      type: object
+      properties:
+        email:
+          type: string
+          example: elon@example.com
+          nullable: true
+        apple_device_token:
+          type: string
+          example: ABCDEFGHIJ
+          nullable: true
+        android_device_token:
+          type: string
+          example: ABCDEFGHIJ
+          nullable: true
+    WebPreferences:
+      description: Web user preference, sent by web users via WS connection
+      type: object
+      properties:
+        gameId: 
+          $ref: '#/components/schemas/GameId'
+    GameEvent:
+      description: Game event, as sent from the game servers, and delivered to the end users
+      type: object
+      properties:
+        gameId: 
+          $ref: '#/components/schemas/GameId'
+        event: 
+          type: string
+          enum:
+            - piece_capture
+            - check
+            - checkmate
+            - power_punch
+            - ko
+            - tko
+          example: "piece_capture"
+          nullable: false
+        from_player:
+          $ref: '#/components/schemas/UserId'
+        to_player:
+          $ref: '#/components/schemas/UserId'
+    UserId:
+      type: integer
+      format: int64
+      example: 178263817263
+      nullable: false
+    GameId:
+      type: integer
+      format: int64
+      example: 1234
+      nullable: false
+
+
+  securitySchemes:
+    chessboxing_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://auth.chessboxing.com
+          scopes:
+            preferences:update: modify notification preferences
